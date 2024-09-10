@@ -11,7 +11,7 @@ local function displayKnockoutMessage()
         end
 
         BeginScaleformMovieMethod(scaleformMovie, "SHOW_SHARD_WASTED_MP_MESSAGE")
-        ScaleformMovieMethodAddParamPlayerNameString("You KNOCKED OUT")
+        ScaleformMovieMethodAddParamPlayerNameString(Config.KnockedText)
         EndScaleformMovieMethod()
     end
 end
