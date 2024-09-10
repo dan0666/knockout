@@ -67,7 +67,7 @@ AddEventHandler('knockout:start', function()
         local endTime = GetGameTimer() + knockoutTime
         
         while GetGameTimer() < endTime do
-            ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', 1.0)
+            ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', Config.ShakeEffectShake)
             Citizen.Wait(500)
         end
 
