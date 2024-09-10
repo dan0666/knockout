@@ -11,7 +11,7 @@ local function displayKnockoutMessage()
         end
 
         BeginScaleformMovieMethod(scaleformMovie, "SHOW_SHARD_WASTED_MP_MESSAGE")
-        ScaleformMovieMethodAddParamPlayerNameString(Config.KnockedText)
+        ScaleformMovieMethodAddParamPlayerNameString("You KNOCKED OUT")
         EndScaleformMovieMethod()
     end
 end
@@ -31,10 +31,13 @@ Citizen.CreateThread(function()
             local target = GetMeleeTargetForPed(PlayerPedId())
             if DoesEntityExist(target) and IsEntityAPed(target) and IsPedAPlayer(target) then
                 local targetHealthBeforeHit = GetEntityHealth(target)
-                Citizen.Wait(0)
+
+                Citizen.Wait(100)
+                
                 local targetHealthAfterHit = GetEntityHealth(target)
                 local damageTaken = targetHealthBeforeHit - targetHealthAfterHit
                 local weaponHash = GetSelectedPedWeapon(PlayerPedId())
+
                 if damageTaken > 0 and not isKnockedOut then
                     TriggerServerEvent('knockout:checkDamage', GetPlayerServerId(NetworkGetPlayerIndexFromPed(target)), damageTaken, weaponHash)
                 end
@@ -45,11 +48,11 @@ end)
 
 RegisterNetEvent('knockout:start')
 AddEventHandler('knockout:start', function()
+
     if isKnockedOut then return end
     isKnockedOut = true
 
     local playerPed = PlayerPedId()
-
     SetPedToRagdoll(playerPed, 10000, 10000, 0, false, false, false)
     
     if Config.TurnOnSound then
@@ -64,7 +67,7 @@ AddEventHandler('knockout:start', function()
         local endTime = GetGameTimer() + knockoutTime
         
         while GetGameTimer() < endTime do
-            ShakeGameplayCam(Config.ShakeEffect, Config.ShakeEffectShake)
+            ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', 1.0)
             Citizen.Wait(500)
         end
 
@@ -77,13 +80,11 @@ AddEventHandler('knockout:start', function()
     end)
 end)
 
--- Handle the event when a player is supposed to stand up
 RegisterNetEvent('knockout:doStandUp')
 AddEventHandler('knockout:doStandUp', function(playerId)
     local playerPed = PlayerPedId()
     local playerServerId = GetPlayerServerId(PlayerId())
     
-    -- Check if the player being synchronized is the local player
     if playerId == playerServerId then
         ClearPedTasks(playerPed)
     end
