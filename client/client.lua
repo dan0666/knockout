@@ -1,4 +1,27 @@
 local isKnockedOut = false
+local scaleformMovie = nil
+
+local function displayKnockoutMessage()
+    if Config.TurnMovieText then
+        if scaleformMovie == nil then
+            scaleformMovie = RequestScaleformMovie("mp_big_message_freemode")
+            while not HasScaleformMovieLoaded(scaleformMovie) do
+                Citizen.Wait(0)
+            end
+        end
+
+        BeginScaleformMovieMethod(scaleformMovie, "SHOW_SHARD_WASTED_MP_MESSAGE")
+        ScaleformMovieMethodAddParamPlayerNameString(Config.KnockedText)
+        EndScaleformMovieMethod()
+    end
+end
+
+local function cleanupScaleformMovie()
+    if scaleformMovie then
+        SetScaleformMovieAsNoLongerNeeded(scaleformMovie)
+        scaleformMovie = nil
+    end
+end
 
 Citizen.CreateThread(function()
     while true do
@@ -8,13 +31,10 @@ Citizen.CreateThread(function()
             local target = GetMeleeTargetForPed(PlayerPedId())
             if DoesEntityExist(target) and IsEntityAPed(target) and IsPedAPlayer(target) then
                 local targetHealthBeforeHit = GetEntityHealth(target)
-
                 Citizen.Wait(0)
-                
                 local targetHealthAfterHit = GetEntityHealth(target)
-                local damageTaken = targetHealthBeforeHit - targetHealthAfterHit               
+                local damageTaken = targetHealthBeforeHit - targetHealthAfterHit
                 local weaponHash = GetSelectedPedWeapon(PlayerPedId())
-
                 if damageTaken > 0 and not isKnockedOut then
                     TriggerServerEvent('knockout:checkDamage', GetPlayerServerId(NetworkGetPlayerIndexFromPed(target)), damageTaken, weaponHash)
                 end
@@ -36,16 +56,45 @@ AddEventHandler('knockout:start', function()
         PlaySoundFrontend(-1, "Bed", "WastedSounds", 0)
     end
     
+    displayKnockoutMessage()
+
     local knockoutTime = Config.KnockOutTime
     
     Citizen.CreateThread(function()
-        local endTime = GetGameTimer() + knockoutTime       
+        local endTime = GetGameTimer() + knockoutTime
+        
         while GetGameTimer() < endTime do
-            ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', 1.0)
+            ShakeGameplayCam(Config.ShakeEffect, Config.ShakeEffectShake)
             Citizen.Wait(500)
         end
+
+        cleanupScaleformMovie()
+        
         TriggerServerEvent('knockout:syncStandUp', GetPlayerServerId(PlayerId()))
+        
         ClearPedTasks(playerPed)
         isKnockedOut = false
     end)
+end)
+
+-- Handle the event when a player is supposed to stand up
+RegisterNetEvent('knockout:doStandUp')
+AddEventHandler('knockout:doStandUp', function(playerId)
+    local playerPed = PlayerPedId()
+    local playerServerId = GetPlayerServerId(PlayerId())
+    
+    -- Check if the player being synchronized is the local player
+    if playerId == playerServerId then
+        ClearPedTasks(playerPed)
+    end
+end)
+
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+        
+        if scaleformMovie and Config.TurnMovieText then
+            DrawScaleformMovieFullscreen(scaleformMovie, 255, 255, 255, 255)
+        end
+    end
 end)
